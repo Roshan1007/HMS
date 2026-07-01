@@ -1,4 +1,4 @@
-const userDb = require('../models/user.model');
+const patientDb = require('../models/patient.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -6,15 +6,15 @@ const { v4: uuidv4 } = require('uuid');
 const register = async (req, res)=>{
     try{
         const {fullname, email, password, role} = req.body;
-        const existingUser = await userDb.findOne({email});
+        const existingUser = await patientDb.findOne({email});
         if(existingUser){
             return res.status(409).json({
                 success: false,
-                message: "Account with this Email already exists",
+                message: "Account with this Email already exists!",
             });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await userDb.create({fullname, email, hashedPassword, role});
+        const user = await patientDb.create({fullname, email, hashedPassword, role});
 
         return res.status(200).json({
             success: true,
@@ -32,7 +32,7 @@ const register = async (req, res)=>{
 const login = async(req, res)=>{
     try{
         const {email, password} = req.body;
-        const trueUser = await userDb.findOne({email});
+        const trueUser = await patientDb.findOne({email});
         if(!trueUser){
             return res.status(401).json({
                 success: false,
