@@ -1,12 +1,14 @@
 const patientDb = require('../models/patient.model');
+const doctorDb = require('../models/doctor.model');
+const userDb = require('../models/user.model')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
 const register = async (req, res)=>{
     try{
-        const {fullname, email, password, role} = req.body;
-        const existingUser = await patientDb.findOne({email});
+        const {fullname, email, password, role, phoneNumber} = req.body;
+        const existingUser = await userDb.findOne({email});
         if(existingUser){
             return res.status(409).json({
                 success: false,
@@ -14,11 +16,28 @@ const register = async (req, res)=>{
             });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await patientDb.create({fullname, email, hashedPassword, role});
+        const user = await userDb.create({fullname, email, password: hashedPassword, role, phoneNumber});
 
-        return res.status(200).json({
+        try{
+            if(role === 'patient'){
+                const {dateOfBirth, gender, bloodGroup, address, emergencyContact, allergies, insuranceDetails} = req.body;
+                const patient = await patientDb.create({userId: user._id, dateOfBirth, gender, bloodGroup, address, emergencyContact, allergies, insuranceDetails});
+            }
+            if(role === 'doctor'){
+                const {deptId, specialization, experience, bio, consultationFee, availability} = req.body;
+                const doctor = await doctorDb.create({userId: user._id, deptId, specialization, experience, bio, consultationFee, availability});
+            }
+        }catch(e){
+            await userDb.findByIdAndDelete(user._id);
+            return res.status(400).json({
+                success: false,
+                message: "Registration failed!"
+            })
+        }
+
+        return res.status(201).json({
             success: true,
-            message: "New user registered!",
+            message: "New user registered!",    
         });
     }catch(err){
         console.log("Registration Error: ",err);
